@@ -32,7 +32,7 @@ def data():
     return product, customer, store, store_item, order, order_item
 
 
-def test_order_process(db, data):
+def test_order_process_ok(db, data):
     product, customer, store, store_item, order, order_item = data
     order.process()
     store_item.refresh_from_db()
@@ -40,3 +40,12 @@ def test_order_process(db, data):
     assert order.is_paid is True
     assert store_item.quantity == 90
     assert order.customer.name == 'Alice'
+
+
+def test_order_process_fail_not_enough(db, data):
+    product, customer, store, store_item, order, order_item = data
+    order_item.quantity = 500
+    order_item.save()
+    with pytest.raises(Exception) as e:
+        order.process()
+    assert str(e.value) == "Not enough stock"

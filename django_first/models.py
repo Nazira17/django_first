@@ -59,6 +59,8 @@ class Order(models.Model):
                 store=store,
                 product=item.product
             )
+            if item.quantity > store_item.quantity:
+                raise Exception('Not enough stock')
             store_item.quantity -= item.quantity
             store_item.save()
 
