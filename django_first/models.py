@@ -1,4 +1,5 @@
 from django.db import models
+from .exceptions import PaymentException, StoreException
 
 
 class Product(models.Model):
@@ -44,14 +45,14 @@ class Order(models.Model):
         try:
             store = Store.objects.get(location=self.location)
         except Store.DoesNotExist:
-            raise Exception('Location not available')
+            raise StoreException('Location not available')
         for item in self.items.all():
             store_item = StoreItem.objects.get(
                 store=store,
                 product=item.product
             )
             if item.quantity > store_item.quantity:
-                raise Exception('Not enough stock')
+                raise StoreException('Not enough stock')
             store_item.quantity -= item.quantity
             store_item.save()
 
@@ -61,7 +62,7 @@ class Order(models.Model):
         confirmed_payments = self.payments.filter(is_confirmed=True)
         paid_amount = sum((payment.amount for payment in confirmed_payments))
         if paid_amount < self.price:
-            raise Exception('Not enough money')
+            raise PaymentException('Not enough money')
         self.is_paid = True
         self.save()
 
