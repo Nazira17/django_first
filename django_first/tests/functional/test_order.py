@@ -3,6 +3,7 @@ from django_first.models import Order, OrderItem, City, Location
 from django_first.models import Product, Store, StoreItem, Customer, Payment
 from django_first.exceptions import PaymentException, StoreException
 from django_first.exceptions import LocationException
+from django.contrib.auth.models import User
 
 
 @pytest.fixture
@@ -18,8 +19,13 @@ def data():
         city=city,
         address='Abay str'
     )
+    user = User.objects.create_user(
+        username='alice',
+        password='alice'
+    )
     customer = Customer.objects.create(
-        name='Alice'
+        name='Alice',
+        user=user
     )
     store = Store.objects.create(
         location=location
@@ -56,6 +62,7 @@ def test_order_process_ok(db, data):
     assert order.is_paid is True
     assert store_item.quantity == 90
     assert order.customer.name == 'Alice'
+    assert order.customer.user.username == 'alice'
 
 
 def test_order_process_ok_mulitple_payments(db, data):
