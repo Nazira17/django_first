@@ -1,7 +1,8 @@
 import pytest
-from django_first.models import Order, OrderItem
+from django_first.models import Order, OrderItem, City, Location
 from django_first.models import Product, Store, StoreItem, Customer, Payment
 from django_first.exceptions import PaymentException, StoreException
+from django_first.exceptions import LocationException
 
 
 @pytest.fixture
@@ -10,11 +11,18 @@ def data():
         name='apple',
         price=10
     )
+    city = City.objects.create(
+        name='Almaty'
+    )
+    location = Location.objects.create(
+        city=city,
+        address='Abay str'
+    )
     customer = Customer.objects.create(
         name='Alice'
     )
     store = Store.objects.create(
-        location='Almaty',
+        location=location
     )
     store_item = StoreItem.objects.create(
         store=store,
@@ -22,7 +30,7 @@ def data():
         quantity=100
     )
     order = Order.objects.create(
-        location='Almaty',
+        city=city,
         customer=customer
     )
     order_item = OrderItem.objects.create(
@@ -35,11 +43,13 @@ def data():
         amount=1000,
         is_confirmed=True
     )
-    return product, customer, store, store_item, order, order_item, payment
+    return (product, customer, store, store_item,
+            order, order_item, payment, city, location)
 
 
 def test_order_process_ok(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
+    (product, customer, store, store_item,
+        order, order_item, payment, city, location) = data
     order.process()
     store_item.refresh_from_db()
     assert order.price == 100
@@ -49,7 +59,8 @@ def test_order_process_ok(db, data):
 
 
 def test_order_process_ok_mulitple_payments(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
+    (product, customer, store, store_item,
+        order, order_item, payment, city, location) = data
     payment.amount = 50
     payment.save()
     Payment.objects.create(
@@ -65,7 +76,8 @@ def test_order_process_ok_mulitple_payments(db, data):
 
 
 def test_order_process_fail_not_enough_stock(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
+    (product, customer, store, store_item,
+        order, order_item, payment, city, location) = data
     order_item.quantity = 200
     order_item.save()
     with pytest.raises(StoreException) as e:
@@ -74,7 +86,8 @@ def test_order_process_fail_not_enough_stock(db, data):
 
 
 def test_order_process_fail_not_enough_money(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
+    (product, customer, store, store_item,
+        order, order_item, payment, city, location) = data
     payment.amount = 10
     payment.save()
     with pytest.raises(PaymentException) as e:
@@ -83,7 +96,8 @@ def test_order_process_fail_not_enough_money(db, data):
 
 
 def test_order_process_fail_payment_not_confirmed(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
+    (product, customer, store, store_item, order,
+        order_item, payment, city, location) = data
     payment.is_confirmed = False
     payment.save()
     with pytest.raises(PaymentException) as e:
@@ -92,9 +106,11 @@ def test_order_process_fail_payment_not_confirmed(db, data):
 
 
 def test_order_process_fail_location_not_available(db, data):
-    product, customer, store, store_item, order, order_item, payment = data
-    order.location = "Astana"
-    order.save()
-    with pytest.raises(StoreException) as e:
+    (product, customer, store, store_item, order,
+        order_item, payment, city, location) = data
+    Astana = City.objects.create(
+        name='Astana')
+    order.city = Astana
+    with pytest.raises(LocationException) as e:
         order.process()
     assert str(e.value) == 'Location not available'

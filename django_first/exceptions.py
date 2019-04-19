@@ -4,3 +4,7 @@ class PaymentException(Exception):
 
 class StoreException(Exception):
     pass
+
+
+class LocationException(Exception):
+    pass
