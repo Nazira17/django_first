@@ -13,3 +13,7 @@ def hello(request):
 
 def bye(request):
     return HttpResponse('Bye, world!')
+
+
+def third(request):
+    return render(request, 'third.html')
