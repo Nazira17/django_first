@@ -43,6 +43,12 @@ def test_order_process_ok_mulitple_payments(db, data):
     assert store_item.quantity == 90
 
 
+def test_payment_signal_ok(db, data):
+    (product, customer, store, store_item,
+        order, order_item, payment, city, location) = data
+    assert order.is_paid is True
+
+
 def test_order_process_fail_not_enough_stock(db, data):
     (product, customer, store, store_item,
         order, order_item, payment, city, location) = data

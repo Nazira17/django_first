@@ -84,8 +84,6 @@ class Order(models.Model):
         paid_amount = sum((payment.amount for payment in confirmed_payments))
         if paid_amount < self.price:
             raise PaymentException('Not enough money')
-        self.is_paid = True
-        self.save()
 
 
 class OrderItem(models.Model):
