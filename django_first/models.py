@@ -1,5 +1,6 @@
 from django.db import models
-from .exceptions import PaymentException, StoreException
+from .exceptions import PaymentException, StoreException, LocationException
+from django.contrib.auth.models import User
 
 
 class Product(models.Model):
@@ -9,8 +10,23 @@ class Product(models.Model):
     )
 
 
+class City(models.Model):
+    name = models.CharField(max_length=100)
+
+
+class Location(models.Model):
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE,
+        related_name='locations'
+    )
+    address = models.CharField(max_length=100)
+
+
 class Store(models.Model):
-    location = models.CharField(max_length=100)
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE,
+        related_name='stores'
+    )
 
 
 class StoreItem(models.Model):
@@ -27,6 +43,7 @@ class StoreItem(models.Model):
 
 class Customer(models.Model):
     name = models.CharField(max_length=100)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
 
 class Order(models.Model):
@@ -34,7 +51,10 @@ class Order(models.Model):
         Customer, on_delete=models.CASCADE,
         related_name='customers'
     )
-    location = models.CharField(max_length=100, blank=True)
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE,
+        related_name='orders'
+    )
     price = models.DecimalField(
         max_digits=10, decimal_places=2,
         blank=True, null=True
@@ -43,9 +63,10 @@ class Order(models.Model):
 
     def process(self):
         try:
-            store = Store.objects.get(location=self.location)
-        except Store.DoesNotExist:
-            raise StoreException('Location not available')
+            store = Store.objects.get(
+                location=Location.objects.get(city=self.city))
+        except Location.DoesNotExist:
+            raise LocationException('Location not available')
         for item in self.items.all():
             store_item = StoreItem.objects.get(
                 store=store,
@@ -63,8 +84,6 @@ class Order(models.Model):
         paid_amount = sum((payment.amount for payment in confirmed_payments))
         if paid_amount < self.price:
             raise PaymentException('Not enough money')
-        self.is_paid = True
-        self.save()
 
 
 class OrderItem(models.Model):
