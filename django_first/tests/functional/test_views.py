@@ -1,5 +1,6 @@
 from lxml import html
 
+from django.urls import reverse
 from django_first.models import Order
 
 
@@ -16,7 +17,8 @@ def test_hello(db, client, data):
 
 
 def test_order(db, client, data):
-    response = client.get('/orders/1/')
+    url = reverse('orders', args=[1])
+    response = client.get(url)
     assert response.status_code == 200
     response = response.content.decode('utf-8')
     assert 'apple' in response
